@@ -4,126 +4,548 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Photo Labeler</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f172a;
+      --surface:   #1e293b;
+      --surface2:  #293548;
+      --border:    #334155;
+      --text:      #f1f5f9;
+      --muted:     #64748b;
+      --primary:   #3b82f6;
+      --primary-h: #2563eb;
+      --danger:    #ef4444;
+      --danger-h:  #dc2626;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 18px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      gap: 12px;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 16px; font-weight: 700; color: var(--primary);
+    }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+
+    /* ── Buttons / labels ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 7px 14px; border-radius: 6px; border: none;
+      font-size: 13px; font-weight: 500; font-family: inherit;
+      cursor: pointer; text-decoration: none; white-space: nowrap;
+      transition: background 0.12s;
+    }
+    .btn:disabled { opacity: 0.35; pointer-events: none; }
+    .btn-primary   { background: var(--primary);   color: #fff; }
+    .btn-primary:hover  { background: var(--primary-h); }
+    .btn-secondary { background: var(--surface2);  color: var(--text); }
+    .btn-secondary:hover { background: #3d4f6a; }
+    .btn-danger    { background: var(--danger);    color: #fff; }
+    .btn-danger:hover  { background: var(--danger-h); }
+    .btn-block { width: 100%; }
+
+    /* ── Main layout ── */
+    main { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Workspace ── */
+    #workspace {
+      flex: 1; display: flex; flex-direction: column;
+      overflow: hidden; background: #070e1c;
+    }
+    #drop-zone {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      overflow: auto; padding: 24px; transition: background 0.15s;
+    }
+    #drop-zone.drag-over {
+      background: rgba(59,130,246,0.07);
+      outline: 2px dashed var(--primary); outline-offset: -14px;
+    }
+    #drop-hint {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 12px; color: var(--muted); pointer-events: none;
+      user-select: none; text-align: center;
+    }
+    #drop-hint svg  { opacity: 0.3; }
+    #drop-hint p    { font-size: 15px; color: #94a3b8; }
+    #drop-hint span { font-size: 13px; }
+
+    /* ── Image + overlays ── */
+    #image-wrap {
+      display: none;          /* shown after image loads */
+      position: relative;
+      line-height: 0;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    #photo {
+      display: block; width: 100%; height: 100%;
+      pointer-events: none; user-select: none;
+    }
+    .lbl {
+      position: absolute;
+      cursor: grab;
+      padding: 2px 5px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.25;
+      user-select: none;
+      border: 1.5px solid transparent;
+      border-radius: 2px;
+      min-width: 20px; min-height: 1em;
+    }
+    .lbl:hover    { border-color: rgba(255,255,255,0.4); }
+    .lbl.sel      { border-color: rgba(255,255,255,0.85); }
+    .lbl.grabbing { cursor: grabbing !important; }
+
+    /* ── Sidebar ── */
+    aside {
+      width: 260px; background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0;
+    }
+    .sidebar-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    h3 {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--muted); margin-bottom: 9px;
+    }
+    .label-row {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px;
+    }
+    .label-row h3 { margin-bottom: 0; }
+    .label-row span { font-size: 12px; color: var(--muted); }
+
+    #state-empty, #state-no-sel {
+      padding: 20px 16px; color: var(--muted); font-size: 13px; line-height: 1.6;
+    }
+    #state-no-sel .hint { margin-top: 8px; font-size: 12px; opacity: 0.7; }
+
+    /* ── Form controls ── */
+    textarea, select {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); padding: 8px 10px;
+      font-size: 13px; font-family: inherit; outline: none;
+      transition: border-color 0.12s;
+    }
+    textarea { resize: vertical; line-height: 1.5; }
+    textarea:focus, select:focus { border-color: var(--primary); }
+    select { cursor: pointer; }
+
+    input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; }
+
+    input[type="color"] {
+      width: 100%; height: 36px; border: 1px solid var(--border);
+      border-radius: 6px; background: var(--bg);
+      cursor: pointer; padding: 2px 3px; outline: none;
+    }
+
+    .toggle-row { display: flex; gap: 14px; flex-wrap: wrap; }
+    .toggle {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 13px; cursor: pointer; user-select: none;
+    }
+  </style>
 </head>
 <body>
-  <div class="app">
 
-    <header>
-      <div class="logo">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <circle cx="8.5" cy="8.5" r="1.5"/>
-          <polyline points="21 15 16 10 5 21"/>
+  <header>
+    <div class="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+      Photo Labeler
+    </div>
+    <div class="header-actions">
+      <button id="add-text-btn" class="btn btn-secondary" disabled>+ Add Text</button>
+      <label for="file-input" class="btn btn-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
         </svg>
-        Photo Labeler
-      </div>
-      <div class="header-actions">
-        <button id="add-text-btn" class="btn btn-secondary" disabled>+ Add Text</button>
-        <label for="file-input" class="btn btn-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="17 8 12 3 7 8"/>
-            <line x1="12" y1="3" x2="12" y2="15"/>
+        Upload Photo
+      </label>
+      <input type="file" id="file-input" accept="image/*" style="display:none">
+    </div>
+  </header>
+
+  <main>
+
+    <div id="workspace">
+      <div id="drop-zone">
+        <div id="drop-hint">
+          <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
           </svg>
-          Upload Photo
-        </label>
-        <input type="file" id="file-input" accept="image/*" style="display:none">
-      </div>
-    </header>
+          <p>Drag &amp; drop a photo here</p>
+          <span>or click <strong>Upload Photo</strong></span>
+        </div>
 
-    <main>
-
-      <!-- ── Image workspace ── -->
-      <div class="workspace" id="workspace">
-        <div class="drop-zone" id="drop-zone">
-
-          <div class="drop-hint" id="drop-hint">
-            <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24"
-              fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <polyline points="21 15 16 10 5 21"/>
-            </svg>
-            <p>Drag &amp; drop a photo here</p>
-            <span>or click <strong>Upload Photo</strong></span>
-          </div>
-
-          <!-- Image + text overlays live inside this container -->
-          <div id="image-container">
-            <img id="photo" alt="" draggable="false">
-            <!-- .text-overlay elements injected by JS -->
-          </div>
-
+        <!-- image + text overlays -->
+        <div id="image-wrap">
+          <img id="photo" alt="">
+          <!-- .lbl elements injected by JS -->
         </div>
       </div>
+    </div>
 
-      <!-- ── Sidebar ── -->
-      <aside class="sidebar">
+    <aside>
+      <div id="state-empty">
+        <p>Upload a photo to start adding text labels.</p>
+      </div>
 
-        <div id="state-empty" class="sidebar-state">
-          <p>Upload a photo to start adding text labels.</p>
+      <div id="state-no-sel" style="display:none">
+        <p>Click <strong>+ Add Text</strong> to add a label to the photo.</p>
+        <p class="hint">Click an existing label to select and edit it.</p>
+      </div>
+
+      <div id="state-edit" style="display:none">
+        <div class="sidebar-section">
+          <h3>Text</h3>
+          <textarea id="ctrl-text" rows="3" placeholder="Type your label…"></textarea>
         </div>
 
-        <div id="state-no-sel" class="sidebar-state" style="display:none">
-          <p>Click <strong>+ Add Text</strong> to add a label to the photo.</p>
-          <p class="hint">Click an existing label to select and edit it.</p>
+        <div class="sidebar-section">
+          <h3>Font</h3>
+          <select id="ctrl-font">
+            <option value="Arial, sans-serif">Arial</option>
+            <option value="'Georgia', serif">Georgia</option>
+            <option value="'Times New Roman', serif">Times New Roman</option>
+            <option value="'Courier New', monospace">Courier New</option>
+            <option value="Impact, sans-serif">Impact</option>
+            <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+            <option value="Verdana, sans-serif">Verdana</option>
+            <option value="'Comic Sans MS', cursive">Comic Sans</option>
+          </select>
         </div>
 
-        <div id="state-edit" class="sidebar-state" style="display:none">
-
-          <section>
-            <h3>Text</h3>
-            <textarea id="ctrl-text" rows="3" placeholder="Type your label…"></textarea>
-          </section>
-
-          <section>
-            <h3>Font</h3>
-            <select id="ctrl-font">
-              <option value="Arial, sans-serif">Arial</option>
-              <option value="'Georgia', serif">Georgia</option>
-              <option value="'Times New Roman', serif">Times New Roman</option>
-              <option value="'Courier New', monospace">Courier New</option>
-              <option value="Impact, sans-serif">Impact</option>
-              <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
-              <option value="Verdana, sans-serif">Verdana</option>
-              <option value="'Comic Sans MS', cursive"">Comic Sans MS</option>
-            </select>
-          </section>
-
-          <section>
-            <div class="label-row">
-              <h3>Size</h3>
-              <span><span id="size-display">32</span> px</span>
-            </div>
-            <input type="range" id="ctrl-size" min="8" max="200" value="32" step="1">
-          </section>
-
-          <section>
-            <h3>Color</h3>
-            <input type="color" id="ctrl-color" value="#ffffff">
-          </section>
-
-          <section>
-            <div class="toggle-row">
-              <label class="toggle"><input type="checkbox" id="ctrl-bold"> Bold</label>
-              <label class="toggle"><input type="checkbox" id="ctrl-italic"> Italic</label>
-              <label class="toggle"><input type="checkbox" id="ctrl-shadow" checked> Shadow</label>
-            </div>
-          </section>
-
-          <section>
-            <button id="delete-btn" class="btn btn-danger block">Delete Label</button>
-          </section>
-
+        <div class="sidebar-section">
+          <div class="label-row">
+            <h3>Size</h3>
+            <span id="size-display">32</span>&nbsp;px
+          </div>
+          <input type="range" id="ctrl-size" min="8" max="200" value="32">
         </div>
-      </aside>
 
-    </main>
-  </div>
+        <div class="sidebar-section">
+          <h3>Color</h3>
+          <input type="color" id="ctrl-color" value="#ffffff">
+        </div>
 
-  <script src="app.js"></script>
+        <div class="sidebar-section">
+          <div class="toggle-row">
+            <label class="toggle"><input type="checkbox" id="ctrl-bold">   Bold</label>
+            <label class="toggle"><input type="checkbox" id="ctrl-italic"> Italic</label>
+            <label class="toggle"><input type="checkbox" id="ctrl-shadow" checked> Shadow</label>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <button id="delete-btn" class="btn btn-danger btn-block">Delete Label</button>
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <script>
+    // ── State ────────────────────────────────────────────────────────────────
+    var imageLoaded = false;
+    var selected    = null;
+    var labelCount  = 0;
+
+    // Drag state
+    var dragging   = false;
+    var dragOffX   = 0, dragOffY   = 0;
+    var dragStartX = 0, dragStartY = 0;
+    var didDrag    = false;
+
+    // ── Grab elements ────────────────────────────────────────────────────────
+    var fileInput   = document.getElementById('file-input');
+    var addTextBtn  = document.getElementById('add-text-btn');
+    var workspace   = document.getElementById('workspace');
+    var dropZone    = document.getElementById('drop-zone');
+    var dropHint    = document.getElementById('drop-hint');
+    var imageWrap   = document.getElementById('image-wrap');
+    var photo       = document.getElementById('photo');
+
+    var stateEmpty  = document.getElementById('state-empty');
+    var stateNoSel  = document.getElementById('state-no-sel');
+    var stateEdit   = document.getElementById('state-edit');
+
+    var ctrlText    = document.getElementById('ctrl-text');
+    var ctrlFont    = document.getElementById('ctrl-font');
+    var ctrlSize    = document.getElementById('ctrl-size');
+    var sizeDisplay = document.getElementById('size-display');
+    var ctrlColor   = document.getElementById('ctrl-color');
+    var ctrlBold    = document.getElementById('ctrl-bold');
+    var ctrlItalic  = document.getElementById('ctrl-italic');
+    var ctrlShadow  = document.getElementById('ctrl-shadow');
+    var deleteBtn   = document.getElementById('delete-btn');
+
+    // ── Load image via FileReader (works on file://, no server needed) ───────
+    fileInput.addEventListener('change', function () {
+      var file = this.files[0];
+      if (file) loadFile(file);
+      this.value = '';   // let the same file be picked again
+    });
+
+    function loadFile(file) {
+      var reader = new FileReader();
+
+      reader.onload = function (e) {
+        var dataUrl = e.target.result;
+
+        photo.onload = function () {
+          // Fit image inside available space, never upscale
+          var maxW  = workspace.clientWidth  - 48;
+          var maxH  = workspace.clientHeight - 48;
+          var scale = Math.min(1, maxW / photo.naturalWidth, maxH / photo.naturalHeight);
+          var w     = Math.round(photo.naturalWidth  * scale);
+          var h     = Math.round(photo.naturalHeight * scale);
+
+          imageWrap.style.width  = w + 'px';
+          imageWrap.style.height = h + 'px';
+          photo.style.width  = '100%';
+          photo.style.height = '100%';
+
+          // Remove labels from previous image
+          var old = imageWrap.querySelectorAll('.lbl');
+          for (var i = 0; i < old.length; i++) old[i].parentNode.removeChild(old[i]);
+
+          dropHint.style.display      = 'none';
+          imageWrap.style.display     = 'block';
+          imageLoaded                 = true;
+          addTextBtn.disabled         = false;
+
+          deselect();
+          setState('no-sel');
+        };
+
+        photo.onerror = function () { alert('Could not display this image.'); };
+        photo.src = dataUrl;
+      };
+
+      reader.onerror = function () { alert('Could not read the file.'); };
+      reader.readAsDataURL(file);
+    }
+
+    // ── Drag-and-drop anywhere on the page ───────────────────────────────────
+    // Prevent browser from navigating to / opening the image
+    window.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    window.addEventListener('drop', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove('drag-over');
+      var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (file && file.type.indexOf('image/') === 0) loadFile(file);
+    });
+
+    // Drop-zone visual feedback
+    dropZone.addEventListener('dragenter', function (e) {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+    dropZone.addEventListener('dragleave', function (e) {
+      if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
+    });
+
+    // ── Add text label ────────────────────────────────────────────────────────
+    addTextBtn.addEventListener('click', function () {
+      if (!imageLoaded) return;
+      addLabel(imageWrap.offsetWidth / 2, imageWrap.offsetHeight / 2);
+    });
+
+    function addLabel(cx, cy) {
+      var el = document.createElement('div');
+      el.className   = 'lbl';
+      el.dataset.id  = ++labelCount;
+
+      // Default styles
+      el.style.fontSize   = '32px';
+      el.style.fontFamily = 'Arial, sans-serif';
+      el.style.color      = '#ffffff';
+      el.style.fontWeight = 'normal';
+      el.style.fontStyle  = 'normal';
+      setShadow(el, true);
+
+      el.textContent = 'New Label';
+
+      // Centre on the point using transform (resolved to px on first drag)
+      el.style.left      = cx + 'px';
+      el.style.top       = cy + 'px';
+      el.style.transform = 'translate(-50%, -50%)';
+
+      el.addEventListener('mousedown', function (e) {
+        e.stopPropagation();
+        selectLabel(el);
+        dragInit(e, el);
+      });
+
+      imageWrap.appendChild(el);
+      selectLabel(el);
+
+      // Focus sidebar text box so user can start typing immediately
+      ctrlText.focus();
+      ctrlText.select();
+    }
+
+    // ── Selection ─────────────────────────────────────────────────────────────
+    function selectLabel(el) {
+      if (selected && selected !== el) selected.classList.remove('sel');
+      selected = el;
+      el.classList.add('sel');
+      syncFrom(el);
+      setState('edit');
+    }
+
+    function deselect() {
+      if (selected) { selected.classList.remove('sel'); selected = null; }
+    }
+
+    // Click on image background → deselect
+    imageWrap.addEventListener('mousedown', function (e) {
+      if (e.target === imageWrap || e.target === photo) {
+        deselect();
+        setState(imageLoaded ? 'no-sel' : 'empty');
+      }
+    });
+
+    // ── Live controls → label ─────────────────────────────────────────────────
+    ctrlText.addEventListener('input', function () {
+      if (selected) selected.textContent = this.value;
+    });
+    ctrlFont.addEventListener('change',  applyControls);
+    ctrlSize.addEventListener('input',   function () {
+      sizeDisplay.textContent = this.value;
+      applyControls();
+    });
+    ctrlColor.addEventListener('input',  applyControls);
+    ctrlBold.addEventListener('change',  applyControls);
+    ctrlItalic.addEventListener('change', applyControls);
+    ctrlShadow.addEventListener('change', applyControls);
+
+    function applyControls() {
+      if (!selected) return;
+      selected.style.fontFamily = ctrlFont.value;
+      selected.style.fontSize   = ctrlSize.value + 'px';
+      selected.style.color      = ctrlColor.value;
+      selected.style.fontWeight = ctrlBold.checked   ? 'bold'   : 'normal';
+      selected.style.fontStyle  = ctrlItalic.checked ? 'italic' : 'normal';
+      setShadow(selected, ctrlShadow.checked);
+    }
+
+    function syncFrom(el) {
+      ctrlText.value          = el.textContent;
+      ctrlFont.value          = el.style.fontFamily || 'Arial, sans-serif';
+      ctrlSize.value          = parseInt(el.style.fontSize) || 32;
+      sizeDisplay.textContent = ctrlSize.value;
+      ctrlColor.value         = rgbToHex(el.style.color) || '#ffffff';
+      ctrlBold.checked        = el.style.fontWeight === 'bold';
+      ctrlItalic.checked      = el.style.fontStyle  === 'italic';
+      ctrlShadow.checked      = el.style.textShadow !== '' && el.style.textShadow !== 'none';
+    }
+
+    function setShadow(el, on) {
+      el.style.textShadow = on
+        ? '1px 1px 4px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.6)'
+        : 'none';
+    }
+
+    deleteBtn.addEventListener('click', function () {
+      if (!selected) return;
+      selected.parentNode.removeChild(selected);
+      selected = null;
+      setState('no-sel');
+    });
+
+    // ── Drag to reposition ────────────────────────────────────────────────────
+    function dragInit(e, el) {
+      // Resolve transform → explicit px coords
+      var r  = el.getBoundingClientRect();
+      var cr = imageWrap.getBoundingClientRect();
+      el.style.left      = (r.left - cr.left) + 'px';
+      el.style.top       = (r.top  - cr.top)  + 'px';
+      el.style.transform = '';
+
+      dragging   = true;
+      didDrag    = false;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      dragOffX   = e.clientX - r.left;
+      dragOffY   = e.clientY - r.top;
+
+      el.classList.add('grabbing');
+      e.preventDefault();
+    }
+
+    document.addEventListener('mousemove', function (e) {
+      if (!dragging || !selected) return;
+      if (!didDrag) {
+        var d = Math.sqrt(Math.pow(e.clientX - dragStartX, 2) + Math.pow(e.clientY - dragStartY, 2));
+        if (d < 4) return;
+        didDrag = true;
+      }
+      var cr = imageWrap.getBoundingClientRect();
+      var x  = Math.max(0, Math.min(e.clientX - cr.left - dragOffX, imageWrap.offsetWidth));
+      var y  = Math.max(0, Math.min(e.clientY - cr.top  - dragOffY, imageWrap.offsetHeight));
+      selected.style.left = x + 'px';
+      selected.style.top  = y + 'px';
+    });
+
+    document.addEventListener('mouseup', function () {
+      if (!dragging) return;
+      dragging = false;
+      if (selected) selected.classList.remove('grabbing');
+      setTimeout(function () { didDrag = false; }, 0);
+    });
+
+    // ── Sidebar state ──────────────────────────────────────────────────────────
+    function setState(s) {
+      stateEmpty.style.display = s === 'empty'  ? '' : 'none';
+      stateNoSel.style.display = s === 'no-sel' ? '' : 'none';
+      stateEdit.style.display  = s === 'edit'   ? '' : 'none';
+    }
+
+    // ── Utility ───────────────────────────────────────────────────────────────
+    function rgbToHex(rgb) {
+      if (!rgb || rgb.charAt(0) === '#') return rgb || '#ffffff';
+      var m = rgb.match(/\d+/g);
+      if (!m || m.length < 3) return '#ffffff';
+      return '#' + [m[0], m[1], m[2]].map(function (v) {
+        return ('0' + parseInt(v).toString(16)).slice(-2);
+      }).join('');
+    }
+  </script>
+
 </body>
 </html>

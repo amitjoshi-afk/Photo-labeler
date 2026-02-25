@@ -179,6 +179,15 @@
     </div>
     <div class="header-actions">
       <button id="add-text-btn" class="btn btn-secondary" disabled>+ Add Text</button>
+      <button id="save-btn" class="btn btn-secondary" disabled>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Save Photo
+      </button>
       <label for="file-input" class="btn btn-primary">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
           fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -308,6 +317,7 @@
     var ctrlItalic  = document.getElementById('ctrl-italic');
     var ctrlShadow  = document.getElementById('ctrl-shadow');
     var deleteBtn   = document.getElementById('delete-btn');
+    var saveBtn     = document.getElementById('save-btn');
 
     // ── Load image via FileReader (works on file://, no server needed) ───────
     fileInput.addEventListener('change', function () {
@@ -343,6 +353,7 @@
           imageWrap.style.display     = 'block';
           imageLoaded                 = true;
           addTextBtn.disabled         = false;
+          saveBtn.disabled            = false;
 
           deselect();
           setState('no-sel');
@@ -534,6 +545,83 @@
       stateEmpty.style.display = s === 'empty'  ? '' : 'none';
       stateNoSel.style.display = s === 'no-sel' ? '' : 'none';
       stateEdit.style.display  = s === 'edit'   ? '' : 'none';
+    }
+
+    // ── Save photo ────────────────────────────────────────────────────────────
+    saveBtn.addEventListener('click', savePhoto);
+
+    function savePhoto() {
+      if (!imageLoaded) return;
+
+      // Offscreen canvas at the photo's native resolution (full quality)
+      var canvas = document.createElement('canvas');
+      canvas.width  = photo.naturalWidth;
+      canvas.height = photo.naturalHeight;
+      var ctx = canvas.getContext('2d');
+
+      // Draw the base image
+      ctx.drawImage(photo, 0, 0, canvas.width, canvas.height);
+
+      // Scale factor: native pixels per displayed pixel
+      var scale = photo.naturalWidth / imageWrap.offsetWidth;
+
+      // Draw every label onto the canvas
+      var labels = imageWrap.querySelectorAll('.lbl');
+      for (var i = 0; i < labels.length; i++) {
+        drawLabelOnCanvas(ctx, labels[i], scale);
+      }
+
+      // Download as PNG
+      var dataUrl = canvas.toDataURL('image/png');
+      var a = document.createElement('a');
+      a.href     = dataUrl;
+      a.download = 'labeled-photo.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function drawLabelOnCanvas(ctx, el, scale) {
+      // getBoundingClientRect gives the actual rendered position regardless
+      // of whether the element still has a CSS transform or not
+      var elRect   = el.getBoundingClientRect();
+      var wrapRect = imageWrap.getBoundingClientRect();
+
+      // Position of the label's top-left corner relative to the image, in canvas pixels
+      var x = (elRect.left - wrapRect.left) * scale;
+      var y = (elRect.top  - wrapRect.top)  * scale;
+
+      // Match the CSS padding (2px top, 5px left) scaled to canvas coords
+      var padX = 5 * scale;
+      var padY = 2 * scale;
+
+      var fontSize   = (parseFloat(el.style.fontSize) || 32) * scale;
+      var fontFamily = el.style.fontFamily || 'Arial, sans-serif';
+      var fontWeight = el.style.fontWeight || 'normal';
+      var fontStyle  = el.style.fontStyle  || 'normal';
+      var color      = el.style.color      || '#ffffff';
+      var hasShadow  = el.style.textShadow && el.style.textShadow !== 'none';
+
+      ctx.save();
+      ctx.font         = fontStyle + ' ' + fontWeight + ' ' + fontSize + 'px ' + fontFamily;
+      ctx.fillStyle    = color;
+      ctx.textBaseline = 'top';
+
+      if (hasShadow) {
+        ctx.shadowColor   = 'rgba(0,0,0,0.95)';
+        ctx.shadowBlur    = 4 * scale;
+        ctx.shadowOffsetX = 1 * scale;
+        ctx.shadowOffsetY = 1 * scale;
+      }
+
+      // Draw line by line so newlines are respected
+      var lines      = el.textContent.split('\n');
+      var lineHeight = fontSize * 1.25;
+      for (var i = 0; i < lines.length; i++) {
+        ctx.fillText(lines[i], x + padX, y + padY + i * lineHeight);
+      }
+
+      ctx.restore();
     }
 
     // ── Utility ───────────────────────────────────────────────────────────────

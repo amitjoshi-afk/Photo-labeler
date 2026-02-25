@@ -181,6 +181,7 @@ main {
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
+  text-decoration: none;
   transition: background 0.12s, opacity 0.12s;
   white-space: nowrap;
 }

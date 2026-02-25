@@ -33,10 +33,10 @@ const ctx         = canvas.getContext('2d');
 const dropZone    = document.getElementById('drop-zone');
 const dropHint    = document.getElementById('drop-hint');
 const fileInput   = document.getElementById('file-input');
-const uploadBtn   = document.getElementById('upload-btn');
 const exportBtn   = document.getElementById('export-btn');
 const toolbar     = document.getElementById('toolbar');
 const toolDraw    = document.getElementById('tool-draw');
+
 const toolSelect  = document.getElementById('tool-select');
 const deleteBtn   = document.getElementById('delete-btn');
 const description = document.getElementById('description');
@@ -45,11 +45,10 @@ const countBadge  = document.getElementById('count');
 const labelInput  = document.getElementById('label-input');
 
 // ─── Bootstrap ─────────────────────────────────────────────────────────────
-uploadBtn.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', (e) => {
   const f = e.target.files[0];
   if (f) loadFile(f);
-  // Reset so same file can be re-selected
+  // Reset so the same file can be re-selected
   fileInput.value = '';
 });
 exportBtn.addEventListener('click', exportJSON);
@@ -57,22 +56,22 @@ toolDraw.addEventListener('click', () => setMode('draw'));
 toolSelect.addEventListener('click', () => setMode('select'));
 deleteBtn.addEventListener('click', deleteSelected);
 
-// Drag & drop
-dropZone.addEventListener('dragover', (e) => {
+// Prevent the browser from opening dragged files in a new tab anywhere on the page
+document.addEventListener('dragover', (e) => e.preventDefault());
+document.addEventListener('drop', (e) => {
   e.preventDefault();
-  dropZone.classList.add('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadFile(f);
 });
+
+// Drop-zone visual feedback
+dropZone.addEventListener('dragover', () => dropZone.classList.add('drag-over'));
 dropZone.addEventListener('dragleave', (e) => {
   if (!dropZone.contains(e.relatedTarget)) {
     dropZone.classList.remove('drag-over');
   }
 });
-dropZone.addEventListener('drop', (e) => {
-  e.preventDefault();
-  dropZone.classList.remove('drag-over');
-  const f = e.dataTransfer.files[0];
-  if (f && f.type.startsWith('image/')) loadFile(f);
-});
+dropZone.addEventListener('drop', () => dropZone.classList.remove('drag-over'));
 
 // Canvas mouse events
 canvas.addEventListener('mousedown', onMouseDown);

@@ -83,12 +83,67 @@
     }
     #drop-hint {
       display: flex; flex-direction: column; align-items: center;
-      gap: 12px; color: var(--muted); pointer-events: none;
-      user-select: none; text-align: center;
+      width: 100%; padding: 24px;
     }
-    #drop-hint svg  { opacity: 0.3; }
-    #drop-hint p    { font-size: 15px; color: #94a3b8; }
-    #drop-hint span { font-size: 13px; }
+
+    /* ── Hero / landing banner ── */
+    .hero {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 22px; max-width: 500px; width: 100%; text-align: center;
+    }
+    .hero-icon {
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 28px rgba(59,130,246,0.45);
+    }
+    .hero h1 {
+      font-size: 30px; font-weight: 800; letter-spacing: -0.5px;
+      color: var(--text); margin: 0;
+    }
+    .hero-sub {
+      font-size: 14px; color: var(--muted); line-height: 1.7; max-width: 380px;
+    }
+    .features {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%;
+    }
+    .feat {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 11px 13px;
+      font-size: 12px; color: #94a3b8;
+      display: flex; align-items: center; gap: 10px; text-align: left;
+    }
+    .feat-icon {
+      width: 28px; height: 28px; border-radius: 7px;
+      background: rgba(59,130,246,0.12);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .drop-area {
+      width: 100%; border: 2px dashed var(--border); border-radius: 12px;
+      padding: 24px 32px;
+      display: flex; flex-direction: column; align-items: center; gap: 11px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .drop-area:hover { border-color: var(--primary); background: rgba(59,130,246,0.04); }
+    .drop-area p { font-size: 13px; color: var(--muted); }
+    .btn-lg { padding: 9px 20px; font-size: 14px; }
+
+    /* ── Mic button ── */
+    .btn-mic {
+      width: 100%; background: var(--surface2); color: var(--text);
+      border: 1px solid var(--border); margin-top: 8px;
+    }
+    .btn-mic:hover:not(:disabled) { background: #3d4f6a; }
+    .btn-mic.recording {
+      background: rgba(239,68,68,0.15); border-color: var(--danger); color: #fca5a5;
+    }
+    @keyframes mic-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+      60%       { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+    }
+    .btn-mic.recording { animation: mic-pulse 1.6s ease-in-out infinite; }
+    .no-voice { font-size: 11px; color: var(--muted); margin-top: 5px; display: none; }
 
     /* ── Image + overlays ── */
     #image-wrap {
@@ -206,14 +261,82 @@
     <div id="workspace">
       <div id="drop-zone">
         <div id="drop-hint">
-          <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
-            <circle cx="8.5" cy="8.5" r="1.5"/>
-            <polyline points="21 15 16 10 5 21"/>
-          </svg>
-          <p>Drag &amp; drop a photo here</p>
-          <span>or click <strong>Upload Photo</strong></span>
+          <div class="hero">
+
+            <!-- App icon -->
+            <div class="hero-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24"
+                fill="none" stroke="rgba(255,255,255,0.92)" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </div>
+
+            <h1>Photo Labeler</h1>
+            <p class="hero-sub">Upload any photo and add fully customizable text labels — set the font, size, color, and position exactly where you want them. Speak or type, then save as PNG.</p>
+
+            <!-- Feature grid -->
+            <div class="features">
+              <div class="feat">
+                <div class="feat-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+                    fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                </div>
+                Upload any photo
+              </div>
+              <div class="feat">
+                <div class="feat-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+                    fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 6h16M4 12h8M4 18h12"/>
+                  </svg>
+                </div>
+                Style text labels freely
+              </div>
+              <div class="feat">
+                <div class="feat-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+                    fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                  </svg>
+                </div>
+                Type or speak labels
+              </div>
+              <div class="feat">
+                <div class="feat-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+                    fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                </div>
+                Save as high-res PNG
+              </div>
+            </div>
+
+            <!-- Drop area -->
+            <div class="drop-area">
+              <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"
+                fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 16 12 12 8 16"/>
+                <line x1="12" y1="12" x2="12" y2="21"/>
+                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+              </svg>
+              <p>Drag &amp; drop a photo here</p>
+              <label for="file-input" class="btn btn-primary btn-lg">Choose a Photo</label>
+            </div>
+
+          </div>
         </div>
 
         <!-- image + text overlays -->
@@ -238,6 +361,17 @@
         <div class="sidebar-section">
           <h3>Text</h3>
           <textarea id="ctrl-text" rows="3" placeholder="Type your label…"></textarea>
+          <button id="mic-btn" class="btn btn-mic" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+            <span id="mic-label">Voice Input</span>
+          </button>
+          <p class="no-voice" id="no-voice-msg">Voice input not supported in this browser.</p>
         </div>
 
         <div class="sidebar-section">
@@ -318,6 +452,9 @@
     var ctrlShadow  = document.getElementById('ctrl-shadow');
     var deleteBtn   = document.getElementById('delete-btn');
     var saveBtn     = document.getElementById('save-btn');
+    var micBtn      = document.getElementById('mic-btn');
+    var micLabel    = document.getElementById('mic-label');
+    var noVoiceMsg  = document.getElementById('no-voice-msg');
 
     // ── Load image via FileReader (works on file://, no server needed) ───────
     fileInput.addEventListener('change', function () {
@@ -437,10 +574,13 @@
       el.classList.add('sel');
       syncFrom(el);
       setState('edit');
+      if (recognition) micBtn.disabled = false;
     }
 
     function deselect() {
       if (selected) { selected.classList.remove('sel'); selected = null; }
+      stopMic();
+      micBtn.disabled = true;
     }
 
     // Click on image background → deselect
@@ -545,6 +685,76 @@
       stateEmpty.style.display = s === 'empty'  ? '' : 'none';
       stateNoSel.style.display = s === 'no-sel' ? '' : 'none';
       stateEdit.style.display  = s === 'edit'   ? '' : 'none';
+    }
+
+    // ── Voice input ───────────────────────────────────────────────────────────
+    var SpeechRec   = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var recognition = null;
+    var micActive   = false;
+    var voiceBase   = '';   // text that existed before the mic session started
+    var voiceFinal  = '';   // confirmed words from the current session
+
+    if (SpeechRec) {
+      recognition = new SpeechRec();
+      recognition.continuous      = true;
+      recognition.interimResults  = true;
+      recognition.lang            = 'en-US';
+
+      recognition.onresult = function (e) {
+        var interim = '';
+        for (var i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) {
+            voiceFinal += e.results[i][0].transcript;
+          } else {
+            interim += e.results[i][0].transcript;
+          }
+        }
+        var full = (voiceBase + voiceFinal + interim).trim();
+        ctrlText.value = full;
+        if (selected) selected.textContent = full;
+      };
+
+      recognition.onend = function () {
+        // Some browsers stop after silence — auto-restart if still active
+        if (micActive) {
+          try { recognition.start(); } catch (err) {}
+        } else {
+          micBtn.classList.remove('recording');
+          micLabel.textContent = 'Voice Input';
+        }
+      };
+
+      recognition.onerror = function (e) {
+        if (e.error === 'not-allowed') {
+          alert('Microphone access was denied. Please allow microphone access and try again.');
+        }
+        if (e.error !== 'no-speech') stopMic();
+      };
+
+      micBtn.addEventListener('click', function () {
+        if (!selected) return;
+        if (micActive) {
+          stopMic();
+        } else {
+          voiceBase  = ctrlText.value ? ctrlText.value + ' ' : '';
+          voiceFinal = '';
+          micActive  = true;
+          micBtn.classList.add('recording');
+          micLabel.textContent = 'Listening… (click to stop)';
+          try { recognition.start(); } catch (err) { stopMic(); }
+        }
+      });
+    } else {
+      // Browser doesn't support the Web Speech API
+      noVoiceMsg.style.display = 'block';
+    }
+
+    function stopMic() {
+      if (!micActive) return;
+      micActive = false;
+      try { recognition.stop(); } catch (err) {}
+      micBtn.classList.remove('recording');
+      micLabel.textContent = 'Voice Input';
     }
 
     // ── Save photo ────────────────────────────────────────────────────────────
